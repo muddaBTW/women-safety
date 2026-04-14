@@ -3,12 +3,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AppContext = createContext();
 
+const SEED_CONTACTS = [
+  { id: '1', name: 'Mom', phone: '1234567890', isEmergency: true },
+  { id: '2', name: 'Dad', phone: '0987654321', isEmergency: true },
+  { id: '3', name: 'Emergency Services', phone: '911', isEmergency: true },
+];
+
 export const AppProvider = ({ children }) => {
   const [contacts, setContacts] = useState([]);
-  const [messages, setMessages] = useState([]);
+  const [messagesMap, setMessagesMap] = useState({}); // { contactId: [messages] }
   const [isAlerting, setIsAlerting] = useState(false);
 
-  // Load data on startup
   useEffect(() => {
     loadData();
   }, []);
@@ -16,17 +21,27 @@ export const AppProvider = ({ children }) => {
   const loadData = async () => {
     try {
       const savedContacts = await AsyncStorage.getItem('contacts');
-      const savedMessages = await AsyncStorage.getItem('messages');
-      if (savedContacts) setContacts(JSON.parse(savedContacts));
-      if (savedMessages) setMessages(JSON.parse(savedMessages));
+      const savedMessages = await AsyncStorage.getItem('messagesMap');
+      
+      if (savedContacts) {
+        setContacts(JSON.parse(savedContacts));
+      } else {
+        // First launch: use seed data
+        setContacts(SEED_CONTACTS);
+        await AsyncStorage.setItem('contacts', JSON.stringify(SEED_CONTACTS));
+      }
+
+      if (savedMessages) {
+        setMessagesMap(JSON.parse(savedMessages));
+      }
     } catch (e) {
       console.error('Failed to load data', e);
     }
   };
 
   const addContact = async (contact) => {
-    if (contacts.length >= 5) {
-      alert('You can only have up to 5 emergency contacts.');
+    if (contacts.length >= 10) { // Increased limit for general contacts
+      alert('Maximum contacts reached.');
       return;
     }
     const newContacts = [...contacts, { ...contact, id: Date.now().toString() }];
@@ -40,29 +55,43 @@ export const AppProvider = ({ children }) => {
     await AsyncStorage.setItem('contacts', JSON.stringify(newContacts));
   };
 
-  const addMessage = async (text, type = 'system') => {
+  const addMessage = async (contactId, text, type = 'user') => {
     const newMessage = {
       id: Date.now().toString(),
       text,
       type,
       timestamp: new Date().toISOString(),
     };
-    const newMessages = [newMessage, ...messages];
-    setMessages(newMessages);
-    await AsyncStorage.setItem('messages', JSON.stringify(newMessages));
+
+    const currentMessages = messagesMap[contactId] || [];
+    const newMessagesMap = {
+      ...messagesMap,
+      [contactId]: [newMessage, ...currentMessages],
+    };
+
+    setMessagesMap(newMessagesMap);
+    await AsyncStorage.setItem('messagesMap', JSON.stringify(newMessagesMap));
   };
 
-  const triggerSOS = async () => {
+  const broadcastSOS = async (lat, lng) => {
     setIsAlerting(true);
-    await addMessage('SOS triggered', 'system');
+    const sosMessage = `SOS Triggered! My location: https://www.google.com/maps?q=${lat},${lng}`;
     
-    // Placeholder for ESP32 API Call
-    // try {
-    //   await fetch("http://ESP32_IP/sos");
-    // } catch (e) { console.error("ESP32 Connection Error", e); }
+    const newMessagesMap = { ...messagesMap };
+    
+    contacts.forEach(contact => {
+      const newMessage = {
+        id: `sos-${Date.now()}-${contact.id}`,
+        text: sosMessage,
+        type: 'emergency',
+        timestamp: new Date().toISOString(),
+      };
+      const currentMessages = newMessagesMap[contact.id] || [];
+      newMessagesMap[contact.id] = [newMessage, ...currentMessages];
+    });
 
-    // Placeholder for GPS Location
-    // console.log("Preparing to get location...");
+    setMessagesMap(newMessagesMap);
+    await AsyncStorage.setItem('messagesMap', JSON.stringify(newMessagesMap));
   };
 
   return (
@@ -71,11 +100,11 @@ export const AppProvider = ({ children }) => {
         contacts,
         addContact,
         removeContact,
-        messages,
+        messagesMap,
         addMessage,
         isAlerting,
         setIsAlerting,
-        triggerSOS,
+        broadcastSOS,
       }}
     >
       {children}

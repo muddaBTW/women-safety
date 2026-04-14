@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Home, Users, MessageSquare } from 'lucide-react-native';
 import HomeScreen from '../screens/main/HomeScreen';
 import ContactsScreen from '../screens/main/ContactsScreen';
-import ChatScreen from '../screens/main/ChatScreen';
+import ChatNavigator from './ChatNavigator';
 import { COLORS } from '../constants/Theme';
 
 const Tab = createBottomTabNavigator();
@@ -31,16 +31,18 @@ const TabNavigator = () => {
         }}
       />
       <Tab.Screen
-        name="Contacts"
+        name="ContactsTab"
         component={ContactsScreen}
         options={{
+          title: 'Contacts',
           tabBarIcon: ({ color, size }) => <Users color={color} size={size} />,
         }}
       />
       <Tab.Screen
-        name="Chat"
-        component={ChatScreen}
+        name="ChatTab"
+        component={ChatNavigator}
         options={{
+          title: 'Chat',
           tabBarIcon: ({ color, size }) => <MessageSquare color={color} size={size} />,
         }}
       />

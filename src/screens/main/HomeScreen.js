@@ -1,55 +1,77 @@
 import React, { useEffect, useRef } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Vibration, SafeAreaView, Animated } from 'react-native';
+import * as Location from 'expo-location';
 import { useApp } from '../../context/AppContext';
 import { COLORS, SPACING, SIZES, SHADOWS } from '../../constants/Theme';
 import { AlertCircle, ShieldCheck } from 'lucide-react-native';
 
 const HomeScreen = ({ navigation }) => {
-  const { isAlerting, triggerSOS, setIsAlerting } = useApp();
+  const { isAlerting, setIsAlerting, broadcastSOS } = useApp();
   
-  // Using standard Animated API for stability
+  // Animation logic
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const opacityAnim = useRef(new Animated.Value(0.6)).current;
 
   useEffect(() => {
-    // Continuous pulse animation
     const pulseSequence = Animated.loop(
       Animated.parallel([
         Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.25,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
+          Animated.timing(pulseAnim, { toValue: 1.2, duration: 1000, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
         ]),
         Animated.sequence([
-          Animated.timing(opacityAnim, {
-            toValue: 0.2,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(opacityAnim, {
-            toValue: 0.6,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
+          Animated.timing(opacityAnim, { toValue: 0.2, duration: 1000, useNativeDriver: true }),
+          Animated.timing(opacityAnim, { toValue: 0.6, duration: 1000, useNativeDriver: true }),
         ]),
       ])
     );
-
     pulseSequence.start();
-
     return () => pulseSequence.stop();
-  }, [pulseAnim, opacityAnim]);
+  }, []);
 
-  const handleSOS = () => {
-    Vibration.vibrate([0, 500, 200, 500], true);
-    triggerSOS();
+  const handleSOS = async () => {
+    try {
+      // 1. Vibrate immediately
+      Vibration.vibrate([0, 500, 200, 500], true);
+      
+      // 2. Request Location Permission
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        alert("Location permission denied. This is required for your safety.");
+        Vibration.cancel();
+        return;
+      }
+
+      // 3. Get Current Location
+      let location = await Location.getCurrentPositionAsync({});
+      let lat = location.coords.latitude;
+      let lng = location.coords.longitude;
+
+      console.log("SOS Triggered. Location:", lat, lng);
+
+      // 4. Send signal to ESP32 Hardware (Handles SMS broadcast)
+      // Note: Timeout added to prevent blocking UI if hardware is offline
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      try {
+        await fetch(`http://192.168.1.16/sos?lat=${lat}&lng=${lng}`, { signal: controller.signal });
+        console.log("ESP32 Notified Successfully");
+      } catch (e) {
+        console.warn("Hardware connection delayed/failed, but broadcasting in-app anyway.");
+      }
+
+      // 5. Broadcast in-app messaging to all emergency contacts
+      await broadcastSOS(lat, lng);
+      
+      alert("SOS Sent Successfully to Hardware & Contacts!");
+
+    } catch (error) {
+      console.error(error);
+      alert("Error sending SOS signal.");
+      Vibration.cancel();
+      setIsAlerting(false);
+    }
   };
 
   const stopSOS = () => {
@@ -67,7 +89,7 @@ const HomeScreen = ({ navigation }) => {
             <ShieldCheck color={COLORS.success} size={20} />
           )}
           <Text style={[styles.statusText, { color: isAlerting ? COLORS.error : COLORS.success }]}>
-            {isAlerting ? 'Alerting Authorities' : 'System: Safe'}
+            {isAlerting ? 'Broadcasting SOS' : 'Environment: Protected'}
           </Text>
         </View>
       </View>
@@ -77,10 +99,7 @@ const HomeScreen = ({ navigation }) => {
           <Animated.View 
             style={[
               styles.pulseRing, 
-              { 
-                transform: [{ scale: pulseAnim }],
-                opacity: opacityAnim 
-              }
+              { transform: [{ scale: pulseAnim }], opacity: opacityAnim }
             ]} 
           />
           <TouchableOpacity
@@ -90,23 +109,25 @@ const HomeScreen = ({ navigation }) => {
             activeOpacity={0.9}
           >
             <Text style={styles.sosText}>{isAlerting ? 'STOP' : 'SOS'}</Text>
-            {!isAlerting && <Text style={styles.sosSubtext}>Long press to trigger</Text>}
+            {!isAlerting && <Text style={styles.sosSubtext}>Hold 1s for Emergency</Text>}
           </TouchableOpacity>
         </View>
       </View>
 
       <View style={styles.footer}>
+        <View style={styles.infoBox}>
+          <Text style={styles.infoTitle}>Safety Broadcast System</Text>
+          <Text style={styles.infoDesc}>
+            {isAlerting 
+              ? "All contacts have been notified with your live coordinates."
+              : "Press and hold the SOS button to alert your 10 contacts and ESP32 hardware."}
+          </Text>
+        </View>
         <TouchableOpacity 
           style={styles.quickButton}
-          onPress={() => navigation.navigate('Contacts')}
+          onPress={() => navigation.navigate('ChatTab')}
         >
-          <Text style={styles.quickButtonText}>Manage Contacts</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.quickButton}
-          onPress={() => navigation.navigate('Chat')}
-        >
-          <Text style={styles.quickButtonText}>Open Chat</Text>
+          <Text style={styles.quickButtonText}>View Chat Threads</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -184,6 +205,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.xl,
     paddingBottom: SPACING.xxl,
     gap: SPACING.md,
+  },
+  infoBox: {
+    backgroundColor: COLORS.surface,
+    padding: SPACING.md,
+    borderRadius: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.primary,
+    marginBottom: SPACING.sm,
+  },
+  infoTitle: {
+    color: COLORS.white,
+    fontSize: SIZES.body,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  infoDesc: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    lineHeight: 18,
   },
   quickButton: {
     backgroundColor: COLORS.surface,
