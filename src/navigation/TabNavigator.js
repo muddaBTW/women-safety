@@ -1,11 +1,12 @@
 import React from 'react';
-import { StyleSheet, View, Platform } from 'react-native';
+import { StyleSheet, View, Platform, Text } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Home, Users, MessageCircle } from 'lucide-react-native';
+import { Home, Users, MessageCircle, Settings } from 'lucide-react-native';
 import HomeScreen from '../screens/main/HomeScreen';
 import ContactsScreen from '../screens/main/ContactsScreen';
+import SettingsScreen from '../screens/main/SettingsScreen';
 import ChatNavigator from './ChatNavigator';
-import { COLORS, RADIUS, SHADOWS } from '../constants/Theme';
+import { COLORS, RADIUS, SHADOWS, SPACING } from '../constants/Theme';
 
 const Tab = createBottomTabNavigator();
 
@@ -15,11 +16,9 @@ const TabNavigator = () => {
       screenOptions={{
         headerShown: false,
         tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: COLORS.primary,
+        tabBarActiveTintColor: COLORS.text,
         tabBarInactiveTintColor: COLORS.textMuted,
-        tabBarShowLabel: true,
-        tabBarLabelStyle: styles.tabLabel,
-        tabBarItemStyle: styles.tabItem,
+        tabBarShowLabel: false, // Cleaner minimalist look
       }}
     >
       <Tab.Screen
@@ -27,8 +26,9 @@ const TabNavigator = () => {
         component={HomeScreen}
         options={{
           tabBarIcon: ({ color, focused }) => (
-            <View style={focused ? styles.activeIconWrap : null}>
-              <Home color={color} size={22} strokeWidth={focused ? 2.5 : 1.8} />
+            <View style={styles.iconContainer}>
+              <Home color={color} size={24} strokeWidth={focused ? 2.5 : 1.5} />
+              {focused && <View style={styles.activeDot} />}
             </View>
           ),
         }}
@@ -37,10 +37,10 @@ const TabNavigator = () => {
         name="ContactsTab"
         component={ContactsScreen}
         options={{
-          title: 'Contacts',
           tabBarIcon: ({ color, focused }) => (
-            <View style={focused ? styles.activeIconWrap : null}>
-              <Users color={color} size={22} strokeWidth={focused ? 2.5 : 1.8} />
+            <View style={styles.iconContainer}>
+              <Users color={color} size={24} strokeWidth={focused ? 2.5 : 1.5} />
+              {focused && <View style={styles.activeDot} />}
             </View>
           ),
         }}
@@ -49,10 +49,22 @@ const TabNavigator = () => {
         name="ChatTab"
         component={ChatNavigator}
         options={{
-          title: 'Messages',
           tabBarIcon: ({ color, focused }) => (
-            <View style={focused ? styles.activeIconWrap : null}>
-              <MessageCircle color={color} size={22} strokeWidth={focused ? 2.5 : 1.8} />
+            <View style={styles.iconContainer}>
+              <MessageCircle color={color} size={24} strokeWidth={focused ? 2.5 : 1.5} />
+              {focused && <View style={styles.activeDot} />}
+            </View>
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="SettingsTab"
+        component={SettingsScreen}
+        options={{
+          tabBarIcon: ({ color, focused }) => (
+            <View style={styles.iconContainer}>
+              <Settings color={color} size={24} strokeWidth={focused ? 2.5 : 1.5} />
+              {focused && <View style={styles.activeDot} />}
             </View>
           ),
         }}
@@ -63,27 +75,36 @@ const TabNavigator = () => {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    height: Platform.OS === 'ios' ? 88 : 64,
-    paddingTop: 8,
-    paddingBottom: Platform.OS === 'ios' ? 28 : 8,
-    ...SHADOWS.soft,
+    borderTopColor: 'rgba(255, 255, 255, 0.05)',
+    height: Platform.OS === 'ios' ? 90 : 70,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 30 : 12,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 -10px 40px rgba(0,0,0,0.5)',
+        backdropFilter: 'blur(20px)',
+      }
+    })
   },
-  tabLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    marginTop: 2,
+  iconContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100%',
   },
-  tabItem: {
-    gap: 2,
-  },
-  activeIconWrap: {
-    backgroundColor: 'rgba(255, 59, 111, 0.1)',
-    borderRadius: 12,
-    padding: 6,
-    marginBottom: -4,
+  activeDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: COLORS.primary,
+    marginTop: 6,
+    position: 'absolute',
+    bottom: -10,
   },
 });
 

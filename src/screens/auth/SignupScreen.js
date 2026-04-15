@@ -9,6 +9,7 @@ import {
   Platform,
   Pressable,
   Keyboard,
+  StatusBar,
 } from 'react-native';
 import { COLORS, SPACING, SIZES, RADIUS, SHADOWS } from '../../constants/Theme';
 import { Lock, Mail, User, ChevronRight, ArrowLeft } from 'lucide-react-native';
@@ -23,77 +24,83 @@ const SignupScreen = ({ navigation }) => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
+      <StatusBar barStyle="light-content" />
       <Pressable onPress={Keyboard.dismiss} style={styles.inner}>
+        
         {/* Back button */}
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
-          <View style={styles.backButtonInner}>
-            <ArrowLeft color={COLORS.text} size={20} />
-          </View>
+          <ArrowLeft color={COLORS.textSecondary} size={24} />
         </TouchableOpacity>
 
-        {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Create Account</Text>
-          <Text style={styles.subtitle}>Join our safety network</Text>
+          <Text style={styles.title}>Registration</Text>
+          <Text style={styles.subtitle}>ESTABLISHING SECURITY PARAMETERS</Text>
         </View>
 
-        {/* Form */}
         <View style={styles.form}>
-          <View style={styles.inputContainer}>
-            <User color={COLORS.textSecondary} size={18} />
-            <TextInput
-              style={styles.input}
-              placeholder="Full Name"
-              placeholderTextColor={COLORS.textMuted}
-              value={name}
-              onChangeText={setName}
-            />
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>FULL NAME</Text>
+            <View style={styles.inputField}>
+              <User color={COLORS.textMuted} size={18} />
+              <TextInput
+                style={styles.input}
+                placeholder="Ex. Jane Doe"
+                placeholderTextColor={COLORS.textMuted}
+                value={name}
+                onChangeText={setName}
+              />
+            </View>
           </View>
 
-          <View style={styles.inputContainer}>
-            <Mail color={COLORS.textSecondary} size={18} />
-            <TextInput
-              style={styles.input}
-              placeholder="Email Address"
-              placeholderTextColor={COLORS.textMuted}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
+            <View style={styles.inputField}>
+              <Mail color={COLORS.textMuted} size={18} />
+              <TextInput
+                style={styles.input}
+                placeholder="name@example.com"
+                placeholderTextColor={COLORS.textMuted}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
           </View>
 
-          <View style={styles.inputContainer}>
-            <Lock color={COLORS.textSecondary} size={18} />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor={COLORS.textMuted}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-            />
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>PROTECTION KEY</Text>
+            <View style={styles.inputField}>
+              <Lock color={COLORS.textMuted} size={18} />
+              <TextInput
+                style={styles.input}
+                placeholder="REQUIRED"
+                placeholderTextColor={COLORS.textMuted}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+              />
+            </View>
           </View>
 
           <TouchableOpacity
-            style={styles.button}
+            style={styles.submitBtn}
             onPress={() => navigation.goBack()}
             activeOpacity={0.9}
           >
-            <Text style={styles.buttonText}>Create Account</Text>
-            <ChevronRight color={COLORS.white} size={18} />
+            <Text style={styles.btnText}>REGISTER DEVICE</Text>
+            <ChevronRight color={COLORS.white} size={20} />
           </TouchableOpacity>
         </View>
 
-        {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Already have an account? </Text>
+          <Text style={styles.footerText}>Already secured? </Text>
           <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-            <Text style={styles.footerLink}>Sign In</Text>
+            <Text style={styles.footerLink}>Initialize Login</Text>
           </TouchableOpacity>
         </View>
       </Pressable>
@@ -114,79 +121,84 @@ const styles = StyleSheet.create({
   backButton: {
     position: 'absolute',
     top: 60,
-    left: SPACING.xl,
+    left: SPACING.lg,
+    padding: 10,
     zIndex: 10,
   },
-  backButtonInner: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   header: {
-    marginBottom: SPACING.lg,
+    marginBottom: 40,
   },
   title: {
-    fontSize: SIZES.h2,
-    fontWeight: '700',
+    fontSize: 32,
+    fontWeight: '800',
     color: COLORS.text,
+    letterSpacing: -1,
   },
   subtitle: {
-    fontSize: SIZES.body,
+    fontSize: 10,
     color: COLORS.textSecondary,
-    marginTop: SPACING.xs,
+    fontWeight: '800',
+    letterSpacing: 2,
+    marginTop: 4,
   },
   form: {
-    gap: SPACING.md,
+    gap: 24,
   },
-  inputContainer: {
+  inputGroup: {
+    gap: 8,
+  },
+  inputLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: COLORS.textMuted,
+    letterSpacing: 1.5,
+    marginLeft: 4,
+  },
+  inputField: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.md,
     paddingHorizontal: SPACING.md,
-    height: 54,
+    height: 56,
     borderWidth: 1,
     borderColor: COLORS.border,
-    gap: SPACING.sm,
+    gap: 12,
   },
   input: {
     flex: 1,
     color: COLORS.text,
-    fontSize: SIZES.body,
+    fontSize: 16,
   },
-  button: {
+  submitBtn: {
     flexDirection: 'row',
     backgroundColor: COLORS.primary,
-    borderRadius: RADIUS.md,
-    height: 54,
+    borderRadius: RADIUS.xl,
+    height: 60,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: SPACING.sm,
-    gap: SPACING.xs,
-    ...SHADOWS.glow,
+    marginTop: 10,
+    gap: 8,
+    ...Platform.select({ web: { boxShadow: '0 0 20px rgba(255, 0, 64, 0.2)' } })
   },
-  buttonText: {
+  btnText: {
     color: COLORS.white,
-    fontSize: SIZES.body,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 1,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: SPACING.xxl,
+    marginTop: 40,
   },
   footerText: {
     color: COLORS.textSecondary,
-    fontSize: SIZES.body,
+    fontSize: 14,
   },
   footerLink: {
     color: COLORS.primary,
-    fontSize: SIZES.body,
+    fontSize: 14,
     fontWeight: '700',
   },
 });

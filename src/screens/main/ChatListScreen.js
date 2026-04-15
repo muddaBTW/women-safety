@@ -6,15 +6,15 @@ import {
   FlatList,
   TouchableOpacity,
   SafeAreaView,
+  StatusBar,
 } from 'react-native';
 import { useApp } from '../../context/AppContext';
 import { COLORS, SPACING, SIZES, RADIUS, SHADOWS } from '../../constants/Theme';
-import { ChevronRight, AlertTriangle } from 'lucide-react-native';
+import { ChevronRight, AlertCircle, MessageSquare } from 'lucide-react-native';
 
 const AVATAR_COLORS = [
-  '#FF3B6F', '#7C5CFC', '#00D68F', '#FFB800',
-  '#3B82F6', '#F97316', '#8B5CF6', '#EC4899',
-  '#06B6D4', '#10B981',
+  '#FF0040', '#8A2BE2', '#30D158', '#FFD60A',
+  '#00F5FF', '#FF9F0A', '#BF5AF2', '#FF375F',
 ];
 
 const getAvatarColor = (name) => {
@@ -34,7 +34,7 @@ const formatTime = (timestamp) => {
   const hours = Math.floor(diff / 3600000);
 
   if (mins < 1) return 'Just now';
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 60) return `${mins}m`;
   if (hours < 24) return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
 };
@@ -50,9 +50,9 @@ const ChatListScreen = ({ navigation }) => {
     const unreadCount = unreadMap[item.id] || 0;
     const avatarColor = getAvatarColor(item.name);
 
-    let previewText = 'Start a conversation';
+    let previewText = 'Begin encryption...';
     if (latestMessage) {
-      if (isSOS) previewText = '🚨 SOS Alert sent';
+      if (isSOS) previewText = '🚨 SOS Alert Active';
       else if (isSystem) previewText = latestMessage.text;
       else if (latestMessage.type === 'received') previewText = latestMessage.text;
       else previewText = `You: ${latestMessage.text}`;
@@ -64,21 +64,15 @@ const ChatListScreen = ({ navigation }) => {
         onPress={() => navigation.navigate('ChatDetail', { contactId: item.id, name: item.name })}
         activeOpacity={0.7}
       >
-        {/* Avatar */}
         <View style={styles.avatarContainer}>
-          <View style={[styles.avatar, { backgroundColor: avatarColor + '20' }]}>
+          <View style={[styles.avatar, { backgroundColor: avatarColor + '15', borderColor: avatarColor + '30' }]}>
             <Text style={[styles.avatarText, { color: avatarColor }]}>
               {item.name.charAt(0).toUpperCase()}
             </Text>
           </View>
-          {isSOS && (
-            <View style={styles.sosIndicator}>
-              <AlertTriangle color={COLORS.white} size={10} />
-            </View>
-          )}
+          {isSOS && <View style={styles.sosPulse} />}
         </View>
 
-        {/* Message info */}
         <View style={styles.info}>
           <View style={styles.topRow}>
             <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
@@ -107,17 +101,17 @@ const ChatListScreen = ({ navigation }) => {
           </View>
         </View>
 
-        <ChevronRight color={COLORS.textMuted} size={16} />
+        <ChevronRight color={COLORS.textMuted} size={14} />
       </TouchableOpacity>
     );
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
+      <StatusBar barStyle="light-content" />
       <View style={styles.header}>
-        <Text style={styles.title}>Messages</Text>
-        <Text style={styles.subtitle}>{contacts.length} conversations</Text>
+        <Text style={styles.title}>Secure Comms</Text>
+        <Text style={styles.subtitle}>{contacts.length} ACTIVE CHANNELS</Text>
       </View>
 
       <FlatList
@@ -128,8 +122,9 @@ const ChatListScreen = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>No conversations yet.</Text>
-            <Text style={styles.emptySubtext}>Add contacts to start messaging.</Text>
+            <MessageSquare color={COLORS.textMuted} size={48} strokeWidth={1} />
+            <Text style={styles.emptyText}>No Active Channels</Text>
+            <Text style={styles.emptySubtext}>Add contacts to initialize comms.</Text>
           </View>
         }
       />
@@ -145,21 +140,23 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: SPACING.xl,
     paddingTop: SPACING.xl,
-    paddingBottom: SPACING.md,
+    paddingBottom: SPACING.lg,
   },
   title: {
-    fontSize: SIZES.h2,
+    fontSize: 32,
     fontWeight: '800',
     color: COLORS.text,
   },
   subtitle: {
-    fontSize: SIZES.caption,
+    fontSize: 10,
     color: COLORS.textSecondary,
-    marginTop: SPACING.xs,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+    marginTop: 4,
   },
   list: {
     paddingHorizontal: SPACING.xl,
-    paddingBottom: SPACING.xxl,
+    paddingBottom: 100,
   },
   card: {
     flexDirection: 'row',
@@ -172,34 +169,33 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   cardSOS: {
-    borderColor: 'rgba(255, 71, 87, 0.3)',
-    backgroundColor: 'rgba(255, 71, 87, 0.05)',
+    borderColor: 'rgba(255, 0, 64, 0.3)',
+    backgroundColor: 'rgba(255, 0, 64, 0.05)',
   },
   avatarContainer: {
     position: 'relative',
     marginRight: SPACING.md,
   },
   avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 16,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
   },
   avatarText: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '800',
   },
-  sosIndicator: {
+  sosPulse: {
     position: 'absolute',
-    bottom: -2,
-    right: -2,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: COLORS.error,
-    justifyContent: 'center',
-    alignItems: 'center',
+    bottom: 2,
+    right: 2,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: COLORS.primary,
     borderWidth: 2,
     borderColor: COLORS.surface,
   },
@@ -215,17 +211,18 @@ const styles = StyleSheet.create({
   },
   name: {
     color: COLORS.text,
-    fontSize: SIZES.body,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     flex: 1,
     marginRight: SPACING.sm,
   },
   time: {
     color: COLORS.textMuted,
-    fontSize: SIZES.tiny,
+    fontSize: 10,
+    fontWeight: '700',
   },
   timeSOS: {
-    color: COLORS.error,
+    color: COLORS.primary,
   },
   bottomRow: {
     flexDirection: 'row',
@@ -234,45 +231,45 @@ const styles = StyleSheet.create({
   },
   preview: {
     color: COLORS.textSecondary,
-    fontSize: SIZES.caption,
+    fontSize: 13,
     flex: 1,
     marginRight: SPACING.sm,
   },
   previewSOS: {
-    color: COLORS.error,
-    fontWeight: '600',
+    color: COLORS.primary,
+    fontWeight: '700',
   },
   previewUnread: {
     color: COLORS.text,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   unreadBadge: {
     backgroundColor: COLORS.primary,
-    minWidth: 20,
-    height: 20,
-    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: 4,
   },
   unreadText: {
     color: COLORS.white,
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 9,
+    fontWeight: '900',
   },
   empty: {
     alignItems: 'center',
-    paddingTop: SPACING.xxxl,
+    paddingTop: 100,
+    gap: 16,
   },
   emptyText: {
     color: COLORS.text,
-    fontSize: SIZES.h3,
-    fontWeight: '600',
-    marginBottom: SPACING.xs,
+    fontSize: 18,
+    fontWeight: '700',
   },
   emptySubtext: {
     color: COLORS.textSecondary,
-    fontSize: SIZES.body,
+    fontSize: 14,
   },
 });
 
