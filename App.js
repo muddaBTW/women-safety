@@ -8,10 +8,10 @@ import { COLORS } from './src/constants/Theme';
 
 export default function App() {
   return (
-    <SafeAreaProvider style={styles.container}>
+    <SafeAreaProvider>
       <AppProvider>
         <View style={styles.container}>
-          <StatusBar style="light" />
+          <StatusBar style="light" translucent backgroundColor="transparent" />
           <AppNavigator />
         </View>
       </AppProvider>

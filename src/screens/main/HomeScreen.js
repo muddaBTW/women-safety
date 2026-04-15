@@ -1,74 +1,95 @@
 import React, { useEffect, useRef } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Vibration, SafeAreaView, Animated } from 'react-native';
+import {
+  StyleSheet,
+  View,
+  Text,
+  TouchableOpacity,
+  Vibration,
+  SafeAreaView,
+  Animated,
+} from 'react-native';
 import * as Location from 'expo-location';
 import { useApp } from '../../context/AppContext';
-import { COLORS, SPACING, SIZES, SHADOWS } from '../../constants/Theme';
-import { AlertCircle, ShieldCheck } from 'lucide-react-native';
+import { COLORS, SPACING, SIZES, RADIUS, SHADOWS } from '../../constants/Theme';
+import { AlertCircle, ShieldCheck, MessageCircle, Users, MapPin } from 'lucide-react-native';
 
 const HomeScreen = ({ navigation }) => {
   const { isAlerting, setIsAlerting, broadcastSOS } = useApp();
-  
-  // Animation logic
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const opacityAnim = useRef(new Animated.Value(0.6)).current;
+
+  // Triple pulse ring animations
+  const pulse1 = useRef(new Animated.Value(1)).current;
+  const pulse2 = useRef(new Animated.Value(1)).current;
+  const pulse3 = useRef(new Animated.Value(1)).current;
+  const opacity1 = useRef(new Animated.Value(0.4)).current;
+  const opacity2 = useRef(new Animated.Value(0.3)).current;
+  const opacity3 = useRef(new Animated.Value(0.2)).current;
+  const statusDot = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    const pulseSequence = Animated.loop(
-      Animated.parallel([
-        Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 1.2, duration: 1000, useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
-        ]),
-        Animated.sequence([
-          Animated.timing(opacityAnim, { toValue: 0.2, duration: 1000, useNativeDriver: true }),
-          Animated.timing(opacityAnim, { toValue: 0.6, duration: 1000, useNativeDriver: true }),
-        ]),
+    // Status dot blink
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(statusDot, { toValue: 0.3, duration: 800, useNativeDriver: true }),
+        Animated.timing(statusDot, { toValue: 1, duration: 800, useNativeDriver: true }),
       ])
-    );
-    pulseSequence.start();
-    return () => pulseSequence.stop();
+    ).start();
+
+    // Triple concentric pulses with staggered delays
+    const createPulse = (scaleAnim, opacityAnim, delay) => {
+      return Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.parallel([
+            Animated.timing(scaleAnim, { toValue: 1.4, duration: 2000, useNativeDriver: true }),
+            Animated.timing(opacityAnim, { toValue: 0, duration: 2000, useNativeDriver: true }),
+          ]),
+          Animated.parallel([
+            Animated.timing(scaleAnim, { toValue: 1, duration: 0, useNativeDriver: true }),
+            Animated.timing(opacityAnim, { toValue: 0.4, duration: 0, useNativeDriver: true }),
+          ]),
+        ])
+      );
+    };
+
+    createPulse(pulse1, opacity1, 0).start();
+    createPulse(pulse2, opacity2, 600).start();
+    createPulse(pulse3, opacity3, 1200).start();
   }, []);
 
   const handleSOS = async () => {
     try {
-      // 1. Vibrate immediately
       Vibration.vibrate([0, 500, 200, 500], true);
-      
-      // 2. Request Location Permission
+
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        alert("Location permission denied. This is required for your safety.");
+        alert('Location permission denied. This is required for your safety.');
         Vibration.cancel();
         return;
       }
 
-      // 3. Get Current Location
       let location = await Location.getCurrentPositionAsync({});
       let lat = location.coords.latitude;
       let lng = location.coords.longitude;
 
-      console.log("SOS Triggered. Location:", lat, lng);
+      console.log('SOS Triggered. Location:', lat, lng);
 
-      // 4. Send signal to ESP32 Hardware (Handles SMS broadcast)
-      // Note: Timeout added to prevent blocking UI if hardware is offline
+      // Send to ESP32
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // ESP takes ~8.5s to respond
+
       try {
-        await fetch(`http://192.168.1.16/sos?lat=${lat}&lng=${lng}`, { signal: controller.signal });
-        console.log("ESP32 Notified Successfully");
+        await fetch(`http://192.168.31.160/sos?lat=${lat}&lng=${lng}`, { signal: controller.signal });
+        console.log('ESP32 Notified Successfully');
       } catch (e) {
-        console.warn("Hardware connection delayed/failed, but broadcasting in-app anyway.");
+        console.warn('Hardware connection delayed/failed, broadcasting in-app.', e);
       }
 
-      // 5. Broadcast in-app messaging to all emergency contacts
       await broadcastSOS(lat, lng);
-      
-      alert("SOS Sent Successfully to Hardware & Contacts!");
+      alert('🚨 SOS Sent Successfully!');
 
     } catch (error) {
       console.error(error);
-      alert("Error sending SOS signal.");
+      alert('Error sending SOS signal.');
       Vibration.cancel();
       setIsAlerting(false);
     }
@@ -81,54 +102,106 @@ const HomeScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
-        <View style={styles.statusBadge}>
+        <View>
+          <Text style={styles.greeting}>SafeGuard</Text>
+          <View style={styles.statusRow}>
+            <Animated.View style={[
+              styles.statusDot,
+              {
+                backgroundColor: isAlerting ? COLORS.error : COLORS.success,
+                opacity: statusDot,
+              }
+            ]} />
+            <Text style={[
+              styles.statusText,
+              { color: isAlerting ? COLORS.error : COLORS.success }
+            ]}>
+              {isAlerting ? 'Broadcasting SOS' : 'Protected'}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.headerBadge}>
           {isAlerting ? (
-            <AlertCircle color={COLORS.error} size={20} />
+            <AlertCircle color={COLORS.error} size={22} />
           ) : (
-            <ShieldCheck color={COLORS.success} size={20} />
+            <ShieldCheck color={COLORS.success} size={22} />
           )}
-          <Text style={[styles.statusText, { color: isAlerting ? COLORS.error : COLORS.success }]}>
-            {isAlerting ? 'Broadcasting SOS' : 'Environment: Protected'}
-          </Text>
         </View>
       </View>
 
+      {/* SOS Button Area */}
       <View style={styles.centerSection}>
         <View style={styles.sosContainer}>
-          <Animated.View 
-            style={[
-              styles.pulseRing, 
-              { transform: [{ scale: pulseAnim }], opacity: opacityAnim }
-            ]} 
-          />
+          {/* Pulse rings */}
+          <Animated.View style={[styles.pulseRing, styles.ring3, {
+            transform: [{ scale: pulse3 }], opacity: opacity3,
+          }]} />
+          <Animated.View style={[styles.pulseRing, styles.ring2, {
+            transform: [{ scale: pulse2 }], opacity: opacity2,
+          }]} />
+          <Animated.View style={[styles.pulseRing, styles.ring1, {
+            transform: [{ scale: pulse1 }], opacity: opacity1,
+          }]} />
+
+          {/* Main button */}
           <TouchableOpacity
             style={[styles.sosButton, isAlerting && styles.sosButtonActive]}
             onLongPress={handleSOS}
             onPress={isAlerting ? stopSOS : null}
             activeOpacity={0.9}
+            delayLongPress={800}
           >
-            <Text style={styles.sosText}>{isAlerting ? 'STOP' : 'SOS'}</Text>
-            {!isAlerting && <Text style={styles.sosSubtext}>Hold 1s for Emergency</Text>}
+            <Text style={[styles.sosText, isAlerting && styles.sosTextActive]}>
+              {isAlerting ? 'STOP' : 'SOS'}
+            </Text>
+            {!isAlerting && (
+              <Text style={styles.sosSubtext}>Hold to activate</Text>
+            )}
           </TouchableOpacity>
         </View>
       </View>
 
-      <View style={styles.footer}>
-        <View style={styles.infoBox}>
-          <Text style={styles.infoTitle}>Safety Broadcast System</Text>
-          <Text style={styles.infoDesc}>
-            {isAlerting 
-              ? "All contacts have been notified with your live coordinates."
-              : "Press and hold the SOS button to alert your 10 contacts and ESP32 hardware."}
-          </Text>
+      {/* Bottom Section */}
+      <View style={styles.bottomSection}>
+        {/* Info Card */}
+        <View style={styles.infoCard}>
+          <View style={styles.infoIconWrap}>
+            <MapPin color={COLORS.primary} size={18} />
+          </View>
+          <View style={styles.infoContent}>
+            <Text style={styles.infoTitle}>Safety Broadcast</Text>
+            <Text style={styles.infoDesc}>
+              {isAlerting
+                ? 'All contacts notified with live coordinates.'
+                : 'Hold SOS to alert contacts & hardware.'}
+            </Text>
+          </View>
         </View>
-        <TouchableOpacity 
-          style={styles.quickButton}
-          onPress={() => navigation.navigate('ChatTab')}
-        >
-          <Text style={styles.quickButtonText}>View Chat Threads</Text>
-        </TouchableOpacity>
+
+        {/* Quick Actions */}
+        <View style={styles.quickActions}>
+          <TouchableOpacity
+            style={styles.quickAction}
+            onPress={() => navigation.navigate('ChatTab')}
+            activeOpacity={0.7}
+          >
+            <MessageCircle color={COLORS.secondary} size={20} />
+            <Text style={styles.quickActionText}>Messages</Text>
+          </TouchableOpacity>
+
+          <View style={styles.quickDivider} />
+
+          <TouchableOpacity
+            style={styles.quickAction}
+            onPress={() => navigation.navigate('ContactsTab')}
+            activeOpacity={0.7}
+          >
+            <Users color={COLORS.secondary} size={20} />
+            <Text style={styles.quickActionText}>Contacts</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -140,22 +213,44 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   header: {
-    padding: SPACING.xl,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: SPACING.xl,
+    paddingTop: SPACING.xl,
+    paddingBottom: SPACING.md,
   },
-  statusBadge: {
+  greeting: {
+    fontSize: SIZES.h2,
+    fontWeight: '800',
+    color: COLORS.text,
+    letterSpacing: 0.5,
+  },
+  statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    borderRadius: 20,
-    ...SHADOWS.light,
+    marginTop: SPACING.xs,
+    gap: SPACING.sm,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   statusText: {
-    fontSize: SIZES.body,
+    fontSize: SIZES.caption,
     fontWeight: '600',
-    marginLeft: SPACING.sm,
+    letterSpacing: 0.5,
+  },
+  headerBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   centerSection: {
     flex: 1,
@@ -163,78 +258,120 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sosContainer: {
-    width: SIZES.sosButton,
-    height: SIZES.sosButton,
+    width: SIZES.sosButton * 1.6,
+    height: SIZES.sosButton * 1.6,
     justifyContent: 'center',
     alignItems: 'center',
   },
   pulseRing: {
     position: 'absolute',
+    borderRadius: 999,
+    backgroundColor: COLORS.primary,
+  },
+  ring1: {
+    width: SIZES.sosButton * 1.1,
+    height: SIZES.sosButton * 1.1,
+  },
+  ring2: {
+    width: SIZES.sosButton * 1.3,
+    height: SIZES.sosButton * 1.3,
+  },
+  ring3: {
+    width: SIZES.sosButton * 1.55,
+    height: SIZES.sosButton * 1.55,
+  },
+  sosButton: {
     width: SIZES.sosButton,
     height: SIZES.sosButton,
     borderRadius: SIZES.sosButton / 2,
     backgroundColor: COLORS.primary,
-  },
-  sosButton: {
-    width: SIZES.sosButton * 0.8,
-    height: SIZES.sosButton * 0.8,
-    borderRadius: (SIZES.sosButton * 0.8) / 2,
-    backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    ...SHADOWS.medium,
-    zIndex: 1,
+    zIndex: 10,
+    ...SHADOWS.glow,
   },
   sosButtonActive: {
     backgroundColor: COLORS.surface,
-    borderWidth: 4,
+    borderWidth: 3,
     borderColor: COLORS.error,
   },
   sosText: {
     color: COLORS.white,
-    fontSize: 48,
+    fontSize: 42,
     fontWeight: '900',
+    letterSpacing: 4,
+  },
+  sosTextActive: {
+    color: COLORS.error,
+    fontSize: 28,
   },
   sosSubtext: {
-    color: COLORS.white,
-    fontSize: 10,
-    marginTop: 4,
-    opacity: 0.8,
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: SIZES.tiny,
+    marginTop: 2,
+    letterSpacing: 0.5,
   },
-  footer: {
+  bottomSection: {
     paddingHorizontal: SPACING.xl,
-    paddingBottom: SPACING.xxl,
+    paddingBottom: SPACING.lg,
     gap: SPACING.md,
   },
-  infoBox: {
+  infoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
     padding: SPACING.md,
-    borderRadius: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: COLORS.primary,
-    marginBottom: SPACING.sm,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    gap: SPACING.md,
   },
-  infoTitle: {
-    color: COLORS.white,
-    fontSize: SIZES.body,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  infoDesc: {
-    color: COLORS.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  quickButton: {
-    backgroundColor: COLORS.surface,
-    padding: SPACING.md,
+  infoIconWrap: {
+    width: 40,
+    height: 40,
     borderRadius: 12,
+    backgroundColor: 'rgba(255, 59, 111, 0.1)',
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  quickButtonText: {
+  infoContent: {
+    flex: 1,
+  },
+  infoTitle: {
     color: COLORS.text,
     fontSize: SIZES.body,
     fontWeight: '600',
+  },
+  infoDesc: {
+    color: COLORS.textSecondary,
+    fontSize: SIZES.caption,
+    marginTop: 2,
+    lineHeight: 18,
+  },
+  quickActions: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    overflow: 'hidden',
+  },
+  quickAction: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SPACING.md,
+    gap: SPACING.sm,
+  },
+  quickDivider: {
+    width: 1,
+    backgroundColor: COLORS.border,
+  },
+  quickActionText: {
+    color: COLORS.text,
+    fontSize: SIZES.body,
+    fontWeight: '500',
   },
 });
 

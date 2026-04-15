@@ -7,10 +7,10 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  TouchableWithoutFeedback,
+  Pressable,
   Keyboard,
 } from 'react-native';
-import { COLORS, SPACING, SIZES, SHADOWS } from '../../constants/Theme';
+import { COLORS, SPACING, SIZES, RADIUS, SHADOWS } from '../../constants/Theme';
 import { Lock, Mail, User, ChevronRight, ArrowLeft } from 'lucide-react-native';
 
 const SignupScreen = ({ navigation }) => {
@@ -23,75 +23,80 @@ const SignupScreen = ({ navigation }) => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.inner}>
-          <TouchableOpacity 
-            style={styles.backButton} 
-            onPress={() => navigation.goBack()}
-          >
-            <ArrowLeft color={COLORS.white} size={24} />
-          </TouchableOpacity>
-
-          <View style={styles.header}>
-            <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Join our community for safety</Text>
+      <Pressable onPress={Keyboard.dismiss} style={styles.inner}>
+        {/* Back button */}
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+        >
+          <View style={styles.backButtonInner}>
+            <ArrowLeft color={COLORS.text} size={20} />
           </View>
+        </TouchableOpacity>
 
-          <View style={styles.form}>
-            <View style={styles.inputContainer}>
-              <User color={COLORS.textSecondary} size={20} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Full Name"
-                placeholderTextColor={COLORS.textSecondary}
-                value={name}
-                onChangeText={setName}
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Mail color={COLORS.textSecondary} size={20} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Email Address"
-                placeholderTextColor={COLORS.textSecondary}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Lock color={COLORS.textSecondary} size={20} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Password"
-                placeholderTextColor={COLORS.textSecondary}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-              />
-            </View>
-
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => navigation.goBack()}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.buttonText}>Sign Up</Text>
-              <ChevronRight color={COLORS.white} size={20} />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Already have an account? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-              <Text style={styles.footerLink}>Log In</Text>
-            </TouchableOpacity>
-          </View>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.title}>Create Account</Text>
+          <Text style={styles.subtitle}>Join our safety network</Text>
         </View>
-      </TouchableWithoutFeedback>
+
+        {/* Form */}
+        <View style={styles.form}>
+          <View style={styles.inputContainer}>
+            <User color={COLORS.textSecondary} size={18} />
+            <TextInput
+              style={styles.input}
+              placeholder="Full Name"
+              placeholderTextColor={COLORS.textMuted}
+              value={name}
+              onChangeText={setName}
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Mail color={COLORS.textSecondary} size={18} />
+            <TextInput
+              style={styles.input}
+              placeholder="Email Address"
+              placeholderTextColor={COLORS.textMuted}
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Lock color={COLORS.textSecondary} size={18} />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              placeholderTextColor={COLORS.textMuted}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+            />
+          </View>
+
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.9}
+          >
+            <Text style={styles.buttonText}>Create Account</Text>
+            <ChevronRight color={COLORS.white} size={18} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Footer */}
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Already have an account? </Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+            <Text style={styles.footerLink}>Sign In</Text>
+          </TouchableOpacity>
+        </View>
+      </Pressable>
     </KeyboardAvoidingView>
   );
 };
@@ -102,27 +107,38 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   inner: {
-    padding: SPACING.xl,
     flex: 1,
+    paddingHorizontal: SPACING.xl,
     justifyContent: 'center',
   },
   backButton: {
     position: 'absolute',
     top: 60,
     left: SPACING.xl,
+    zIndex: 10,
+  },
+  backButtonInner: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
-    marginBottom: SPACING.xxl,
+    marginBottom: SPACING.lg,
   },
   title: {
-    fontSize: SIZES.h1,
-    fontWeight: 'bold',
-    color: COLORS.white,
-    marginBottom: SPACING.xs,
+    fontSize: SIZES.h2,
+    fontWeight: '700',
+    color: COLORS.text,
   },
   subtitle: {
     fontSize: SIZES.body,
     color: COLORS.textSecondary,
+    marginTop: SPACING.xs,
   },
   form: {
     gap: SPACING.md,
@@ -131,33 +147,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.surface,
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
     paddingHorizontal: SPACING.md,
-    height: 56,
-  },
-  inputIcon: {
-    marginRight: SPACING.sm,
+    height: 54,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    gap: SPACING.sm,
   },
   input: {
     flex: 1,
-    color: COLORS.white,
+    color: COLORS.text,
     fontSize: SIZES.body,
   },
   button: {
     flexDirection: 'row',
     backgroundColor: COLORS.primary,
-    borderRadius: 12,
-    height: 56,
+    borderRadius: RADIUS.md,
+    height: 54,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: SPACING.md,
-    ...SHADOWS.medium,
+    marginTop: SPACING.sm,
+    gap: SPACING.xs,
+    ...SHADOWS.glow,
   },
   buttonText: {
     color: COLORS.white,
     fontSize: SIZES.body,
-    fontWeight: 'bold',
-    marginRight: SPACING.xs,
+    fontWeight: '700',
   },
   footer: {
     flexDirection: 'row',
@@ -171,7 +187,7 @@ const styles = StyleSheet.create({
   footerLink: {
     color: COLORS.primary,
     fontSize: SIZES.body,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
 });
 
